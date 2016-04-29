@@ -1,7 +1,7 @@
 #ifndef VALUE_H__
 #define VALUE_H__
 
-enum tl_vtype { TL_VTYPE_HEAP };
+enum tl_vtype { TL_VTYPE_NIL, TL_VTYPE_HEAP };
 
 typedef struct {
   enum tl_vtype type;
@@ -29,6 +29,7 @@ struct tl_symbol {
   char *name;
 };
 
+tl_value tl_nil_value();
 tl_value tl_obj_value(struct tl_object *);
 
 #endif
