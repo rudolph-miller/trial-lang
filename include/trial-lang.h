@@ -1,6 +1,8 @@
 #ifndef TL_H__
 #define TL_H__
 
+#include "trial-lang/value.h"
+
 typedef struct {
 } tl_state;
 
