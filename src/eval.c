@@ -64,6 +64,8 @@ tl_value tl_eval(tl_state *tl, tl_value obj, struct tl_env *env) {
       }
       case TL_TT_NIL:
         return obj;
+      case TL_TT_INT:
+        return obj;
       default:
         return tl_nil_value();
     }

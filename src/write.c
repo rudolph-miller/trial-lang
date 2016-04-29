@@ -18,6 +18,9 @@ void tl_debug(tl_state *tl, tl_value obj) {
     case TL_TT_SYMBOL:
       printf("%s", tl_symbol_ptr(obj)->name);
       break;
+    case TL_TT_INT:
+      printf("%d", tl_int(obj));
+      break;
     default:
       abort();
   }

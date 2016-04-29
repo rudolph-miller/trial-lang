@@ -25,10 +25,10 @@ int yylex_destroy();
 }
 
 %token tLPAREN tRPAREN tDOT
-%token <datum> tSYMBOL
+%token <datum> tSYMBOL tINT
 
 %type <datum> datum simple_datum symbol compound_datum
-%type <datum> list list_tail
+%type <datum> number integer list list_tail
 
 %%
 
@@ -50,10 +50,22 @@ datum
 
 simple_datum
   : symbol
+  | number
 ;
 
 symbol
   : tSYMBOL
+  {
+    $$ = $1;
+  }
+;
+
+number
+  : integer
+;
+
+integer
+  : tINT
   {
     $$ = $1;
   }
@@ -88,7 +100,6 @@ list_tail
 %%
 
 int yyerror(struct parser_control *p, const char *msg) {
-  tl_debug(p->tl, yylval.datum);
   puts(msg);
   abort();
 }
