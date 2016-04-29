@@ -24,11 +24,11 @@ int yylex_destroy();
   tl_value datum;
 }
 
-%token tLPAREN tRPAREN tDOT
+%token tLPAREN tRPAREN tDOT tQUOTE
 %token <datum> tSYMBOL tINT
 
 %type <datum> datum simple_datum symbol compound_datum
-%type <datum> number integer list list_tail
+%type <datum> number integer list list_tail quoted_symbol
 
 %%
 
@@ -72,7 +72,8 @@ integer
 ;
 
 compound_datum
-  : list
+  : quoted_symbol
+  | list
 ;
 
 list
@@ -94,6 +95,13 @@ list_tail
   | datum list_tail
   {
     $$ = tl_cons(p->tl, $1, $2);
+  }
+;
+
+quoted_symbol
+  : tQUOTE symbol
+  {
+    $$ = tl_cons(p->tl, tl_intern_cstr(p->tl, "quote"), tl_cons(p->tl, $2, tl_nil_value()));
   }
 ;
 
