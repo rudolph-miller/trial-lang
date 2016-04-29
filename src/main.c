@@ -1,11 +1,16 @@
 #include <stdio.h>
 
+#include "trial-lang.h"
+
 #define LINE_MAX_LENGTH 256
 
 int main() {
+  tl_state *tl;
   char line[LINE_MAX_LENGTH];
   char last_char;
   int char_index;
+
+  tl = tl_open();
 
   while (1) {
     printf("> ");
@@ -29,5 +34,7 @@ eof:
   goto exit;
 
 exit:
+  tl_close(tl);
+
   return 0;
 }
