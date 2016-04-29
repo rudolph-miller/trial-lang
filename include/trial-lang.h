@@ -17,4 +17,6 @@ tl_value tl_cons(tl_state *, tl_value, tl_value);
 tl_value tl_car(tl_state *, tl_value);
 tl_value tl_cdr(tl_state *, tl_value);
 
+tl_value tl_intern_cstr(tl_satte *, const char *);
+
 #endif
