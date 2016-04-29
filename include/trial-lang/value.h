@@ -29,4 +29,6 @@ struct tl_symbol {
   char *name;
 };
 
+tl_value tl_obj_value(struct tl_object *);
+
 #endif
