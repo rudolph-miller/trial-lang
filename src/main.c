@@ -49,7 +49,7 @@ int main() {
 
     v = tl_parse(tl, line);
 
-    tl_debug(tl, v);
+    tl_debug(tl, tl_eval(tl, v, tl->global_env));
     printf("\n");
   }
 

@@ -37,4 +37,6 @@ enum tl_tt tl_type(tl_value);
 tl_value tl_nil_value();
 tl_value tl_obj_value(void *);
 
+#define tl_nil_p(v) (tl_type(v) == TL_TT_NIL)
+
 #endif

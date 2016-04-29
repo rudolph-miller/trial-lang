@@ -2,11 +2,16 @@
 #define TL_H__
 
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "trial-lang/value.h"
 
-typedef struct {
-} tl_state;
+struct tl_env {
+  tl_value assoc;
+  struct tl_env *parent;
+};
+
+typedef struct { struct tl_env *global_env; } tl_state;
 
 tl_state *tl_open();
 void tl_close(tl_state *);
@@ -19,9 +24,13 @@ tl_value tl_cons(tl_state *, tl_value, tl_value);
 tl_value tl_car(tl_state *, tl_value);
 tl_value tl_cdr(tl_state *, tl_value);
 
+bool tl_eq_p(tl_state *, tl_value, tl_value);
+
 tl_value tl_intern_cstr(tl_state *, const char *);
 
 tl_value tl_parse(tl_state *, const char *);
+
+tl_value tl_eval(tl_state *, tl_value, struct tl_env *);
 
 void tl_debug(tl_state *, tl_value);
 
