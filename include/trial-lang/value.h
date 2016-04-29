@@ -10,7 +10,7 @@ typedef struct {
   } u;
 } tl_value;
 
-enum tl_tt { TL_TT_NIL, TL_TT_PA_PAIR, TL_TT_SYMBOL };
+enum tl_tt { TL_TT_NIL, TL_TT_PAIR, TL_TT_SYMBOL };
 
 #define TL_OBJECT_HEADER enum tl_tt tt;
 
@@ -29,12 +29,12 @@ struct tl_symbol {
   char *name;
 };
 
-#define tl_pair_ptr(o) ((struct tl_pair *)o->u->data)
-#define tl_symbol_ptr(o) ((struct tl_symbol *)o->u->data)
+#define tl_pair_ptr(o) ((struct tl_pair *)o.u.data)
+#define tl_symbol_ptr(o) ((struct tl_symbol *)o.u.data)
 
 enum tl_tt tl_type(tl_value);
 
 tl_value tl_nil_value();
-tl_value tl_obj_value(struct tl_object *);
+tl_value tl_obj_value(void *);
 
 #endif

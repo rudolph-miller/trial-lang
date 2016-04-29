@@ -11,7 +11,7 @@ void tl_debug(tl_state *tl, tl_value obj) {
     case TL_TT_PAIR:
       printf("(");
       tl_debug(tl, tl_car(tl, obj));
-      printf(".");
+      printf(" . ");
       tl_debug(tl, tl_cdr(tl, obj));
       printf(")");
       break;

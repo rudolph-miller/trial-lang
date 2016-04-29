@@ -2,7 +2,7 @@
 
 #include "trial-lang.h"
 
-tl_vaule tl_intern_cstr(tl_state *tl, char *name) {
+tl_value tl_intern_cstr(tl_state *tl, const char *name) {
   struct tl_symbol *sym;
   size_t len;
 
