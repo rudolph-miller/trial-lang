@@ -21,6 +21,8 @@ tl_value tl_cdr(tl_state *, tl_value);
 
 tl_value tl_intern_cstr(tl_state *, const char *);
 
+tl_value tl_parse(tl_state *, const char *);
+
 void tl_debug(tl_state *, tl_value);
 
 #endif

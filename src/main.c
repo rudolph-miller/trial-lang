@@ -31,6 +31,7 @@ int main() {
   char line[LINE_MAX_LENGTH];
   char last_char;
   int char_index;
+  tl_value v;
 
   tl = tl_open();
 
@@ -46,7 +47,10 @@ int main() {
     }
     line[char_index] = '\0';
 
-    printf("%s\n", line);
+    v = tl_parse(tl, line);
+
+    tl_debug(tl, v);
+    printf("\n");
   }
 
 overflow:
