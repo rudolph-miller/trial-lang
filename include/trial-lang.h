@@ -11,7 +11,18 @@ struct tl_env {
   struct tl_env *parent;
 };
 
-typedef struct { struct tl_env *global_env; } tl_state;
+struct tl_proc {
+  union {
+    struct tl_irep *irep;
+  } u;
+};
+
+typedef struct {
+  tl_value *sp;
+  tl_value *stbase;
+  tl_value *stend;
+  struct tl_env *global_env;
+} tl_state;
 
 tl_state *tl_open();
 void tl_close(tl_state *);
@@ -31,6 +42,8 @@ tl_value tl_intern_cstr(tl_state *, const char *);
 tl_value tl_parse(tl_state *, const char *);
 
 tl_value tl_eval(tl_state *, tl_value, struct tl_env *);
+tl_value tl_run(tl_state *, struct tl_proc *, tl_value);
+struct tl_proc *tl_codegen(tl_state *, tl_value, struct tl_env *);
 
 void tl_debug(tl_state *, tl_value);
 

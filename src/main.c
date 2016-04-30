@@ -4,38 +4,15 @@
 
 #define LINE_MAX_LENGTH 256
 
-void test(tl_state *tl) {
-  tl_value v;
-
-  {
-    v = tl_intern_cstr(tl, "symbol");
-    tl_debug(tl, v);
-    puts(" sohuld be `symbol`.");
-  }
-
-  {
-    v = tl_nil_value();
-    tl_debug(tl, v);
-    puts(" should be `()`.");
-  }
-
-  {
-    v = tl_cons(tl, tl_intern_cstr(tl, "car"), tl_intern_cstr(tl, "cdr"));
-    tl_debug(tl, v);
-    puts(" should be `(car . cdr)`.");
-  }
-}
-
 int main() {
   tl_state *tl;
   char line[LINE_MAX_LENGTH];
   char last_char;
   int char_index;
   tl_value v;
+  struct tl_proc *proc;
 
   tl = tl_open();
-
-  test(tl);
 
   while (1) {
     printf("> ");
@@ -49,7 +26,9 @@ int main() {
 
     v = tl_parse(tl, line);
 
-    tl_debug(tl, tl_eval(tl, v, tl->global_env));
+    proc = tl_codegen(tl, v, tl->global_env);
+    v = tl_run(tl, proc, tl_nil_value());
+    tl_debug(tl, v);
     printf("\n");
   }
 
