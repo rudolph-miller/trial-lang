@@ -5,6 +5,8 @@
 #include "trial-lang/gc.h"
 #include "trial-lang/irep.h"
 
+#define GC_DEBUG 1
+
 void init_heap_page(struct heap_page *heap) {
   union header *base;
   union header *freep;
@@ -35,7 +37,7 @@ void *tl_alloc(tl_state *tl, size_t size) {
   return ptr;
 }
 
-void tl_free(tl_state *tl, void *ptr) { tl_free(tl, ptr); }
+void tl_free(tl_state *tl, void *ptr) { free(ptr); }
 
 static void gc_protect(tl_state *tl, struct tl_object *obj) {
   if (tl->arena_idx >= TL_ARENA_SIZE) tl_raise(tl, "arena has overflowed");
@@ -185,6 +187,8 @@ static void gc_sweep_phase(tl_state *tl) {
 #if GC_DEBUG
     puts("sweeping block");
 #endif
+
+  retry:
     for (bp = p + p->s.size; bp != p->s.ptr; bp += bp->s.size) {
 #if GC_DEBUG
       printf("  bp = %p\n  p  = %p\n  p->s.ptr = %p\n  endp = %p\n", bp, p,
@@ -194,7 +198,7 @@ static void gc_sweep_phase(tl_state *tl) {
       if (p >= p->s.ptr && bp == tl->heap->endp) break;
       if (is_marked(bp)) {
 #if GC_DEBUG
-        printf("markde:\t\t\t");
+        printf("marked:\t\t\t");
         tl_debug(tl, tl_obj_value((struct tl_object *)(bp + 1)));
         printf("\n");
 #endif
@@ -220,7 +224,9 @@ static void gc_sweep_phase(tl_state *tl) {
         p->s.ptr = bp->s.ptr;
       } else {
         p->s.ptr = bp;
+        p = p->s.ptr;
       }
+      goto retry;
     }
   }
 }
