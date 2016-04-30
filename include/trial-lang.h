@@ -41,10 +41,10 @@ tl_value tl_intern_cstr(tl_state *, const char *);
 
 tl_value tl_parse(tl_state *, const char *);
 
-tl_value tl_eval(tl_state *, tl_value, struct tl_env *);
 tl_value tl_run(tl_state *, struct tl_proc *, tl_value);
 struct tl_proc *tl_codegen(tl_state *, tl_value, struct tl_env *);
 
+void tl_raise(tl_state *, const char *);
 void tl_debug(tl_state *, tl_value);
 
 #endif
