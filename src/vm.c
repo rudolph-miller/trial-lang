@@ -109,7 +109,7 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   VM_LOOP_END;
 
 STOP:
-  return *sp;
+  return POP();
 }
 
 void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
