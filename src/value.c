@@ -6,6 +6,8 @@ enum tl_tt tl_type(tl_value v) {
       return TL_TT_NIL;
     case TL_VTYPE_INT:
       return TL_TT_INT;
+    case TL_VTYPE_UNDEF:
+      return TL_TT_UNDEF;
     case TL_VTYPE_HEAP:
       return ((struct tl_object *)v.u.data)->tt;
   }
@@ -32,5 +34,13 @@ tl_value tl_int_value(int i) {
 
   v.type = TL_VTYPE_INT;
   v.u.i = i;
+  return v;
+}
+
+tl_value tl_undef_value() {
+  tl_value v;
+
+  v.type = TL_VTYPE_UNDEF;
+  v.u.data = NULL;
   return v;
 }

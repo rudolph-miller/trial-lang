@@ -2,7 +2,14 @@
 
 #include "trial-lang.h"
 
-enum tl_instruction { OP_PUSHNIL, OP_PUSHI, OP_CONS, OP_ADD, OP_STOP };
+enum tl_instruction {
+  OP_PUSHNIL,
+  OP_PUSHI,
+  OP_PUSHUNDEF,
+  OP_CONS,
+  OP_ADD,
+  OP_STOP
+};
 
 struct tl_code {
   enum tl_instruction inst;
@@ -32,6 +39,10 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
       }
       case OP_PUSHI: {
         *++sp = tl_int_value(pc->u.i);
+        break;
+      }
+      case OP_PUSHUNDEF: {
+        *++sp = tl_undef_value();
         break;
       }
       case OP_CONS: {
@@ -104,6 +115,11 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
     }
     case TL_TT_NIL: {
       irep->code[irep->clen].inst = OP_PUSHNIL;
+      irep->clen++;
+      break;
+    }
+    case TL_TT_UNDEF: {
+      irep->code[irep->clen].inst = OP_PUSHUNDEF;
       irep->clen++;
       break;
     }

@@ -1,7 +1,12 @@
 #ifndef VALUE_H__
 #define VALUE_H__
 
-enum tl_vtype { TL_VTYPE_NIL, TL_VTYPE_INT, TL_VTYPE_HEAP };
+enum tl_vtype {
+  TL_VTYPE_NIL,
+  TL_VTYPE_INT,
+  TL_VTYPE_UNDEF,
+  TL_VTYPE_HEAP
+};
 
 typedef struct {
   enum tl_vtype type;
@@ -11,7 +16,13 @@ typedef struct {
   } u;
 } tl_value;
 
-enum tl_tt { TL_TT_NIL, TL_TT_INT, TL_TT_PAIR, TL_TT_SYMBOL };
+enum tl_tt {
+  TL_TT_NIL,
+  TL_TT_INT,
+  TL_TT_UNDEF,
+  TL_TT_PAIR,
+  TL_TT_SYMBOL
+};
 
 #define TL_OBJECT_HEADER enum tl_tt tt;
 
@@ -36,6 +47,7 @@ struct tl_symbol {
 enum tl_tt tl_type(tl_value);
 
 tl_value tl_nil_value();
+tl_value tl_undef_value();
 tl_value tl_obj_value(void *);
 tl_value tl_int_value(int);
 
