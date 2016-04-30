@@ -144,6 +144,9 @@ static bool is_marked(union header *p) { return p->s.mark == TL_GC_MARK; }
 static void gc_unmark(union header *p) { p->s.mark = TL_GC_UNMARK; }
 
 static void gc_finalize_object(tl_state *tl, struct tl_object *obj) {
+#if GC_DEBUG
+  printf("finalizing object type %d\n", obj->tt);
+#endif
   switch (obj->tt) {
     case TL_TT_SYMBOL: {
       char *name;
@@ -161,6 +164,7 @@ static void gc_finalize_object(tl_state *tl, struct tl_object *obj) {
 
       tl_free(tl, proc->u.irep->code);
       tl_free(tl, proc->u.irep);
+      break;
     }
     default:
       tl_raise(tl, "gc_finalize_object logic has flawed");
@@ -172,14 +176,35 @@ static void gc_sweep_phase(tl_state *tl) {
   union header *bp;
   union header *p;
 
+#if GC_DEBUG
+  puts("sweep start!");
+#endif
+
   base = tl->heap->base;
   for (p = base->s.ptr; p != base; p = p->s.ptr) {
+#if GC_DEBUG
+    puts("sweeping block");
+#endif
     for (bp = p + p->s.size; bp != p->s.ptr; bp += bp->s.size) {
+#if GC_DEBUG
+      printf("  bp = %p\n  p  = %p\n  p->s.ptr = %p\n  endp = %p\n", bp, p,
+             p->s.ptr, tl->heap->endp);
+#endif
+
       if (p >= p->s.ptr && bp == tl->heap->endp) break;
       if (is_marked(bp)) {
+#if GC_DEBUG
+        printf("markde:\t\t\t");
+        tl_debug(tl, tl_obj_value((struct tl_object *)(bp + 1)));
+        printf("\n");
+#endif
         gc_unmark(bp);
         continue;
       }
+
+#if GC_DEBUG
+      puts("unmarked");
+#endif
 
       gc_finalize_object(tl, (struct tl_object *)(bp + 1));
 
@@ -200,7 +225,11 @@ static void gc_sweep_phase(tl_state *tl) {
   }
 }
 
-static void tl_gc_run(tl_state *tl) {
+void tl_gc_run(tl_state *tl) {
+#if GC_DEBUG
+  puts("gc run!");
+#endif
+
   gc_mark_phase(tl);
   gc_sweep_phase(tl);
 }
@@ -236,12 +265,15 @@ struct tl_object *tl_obj_alloc(tl_state *tl, size_t size, enum tl_tt tt) {
 
   obj = (struct tl_object *)gc_alloc(tl, size);
   if (obj == NULL) {
-    puts("gc run!");
     tl_gc_run(tl);
     obj = (struct tl_object *)gc_alloc(tl, size);
-    if (obj == NULL) tl_raise(tl, "memory exhausted");
+    if (obj == NULL) tl_raise(tl, "GC memory exhausted");
   }
   obj->tt = tt;
+
+#if GC_DEBUG
+  printf("* alloced object type %d\n", tt);
+#endif
 
   gc_protect(tl, obj);
   return obj;
