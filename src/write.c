@@ -24,7 +24,11 @@ void tl_debug(tl_state *tl, tl_value obj) {
     case TL_TT_UNDEF:
       printf("#<undef>");
       break;
+    case TL_TT_PROC:
+      printf("#<proc %p>", tl_proc_ptr(obj));
+      break;
     default:
-      abort();
+      printf("#<unknown type>");
+      break;
   }
 }
