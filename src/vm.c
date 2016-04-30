@@ -67,6 +67,18 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
   return tl_pair_ptr(cell);
 }
 
+#define VM_LOOP \
+  for (;;) {    \
+    switch (pc->inst) {
+#define CASE(x) case x:
+#define NEXT \
+  pc++;      \
+  break
+#define JUMP break
+#define VM_LOOP_END \
+  }                 \
+  }
+
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
   tl_value *sp;
@@ -74,51 +86,47 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   pc = proc->u.irep->code;
   sp = tl->sp;
 
-  while (1) {
-    switch (pc->inst) {
-      case OP_PUSHNIL: {
-        *++sp = tl_nil_value();
-        break;
-      }
-      case OP_PUSHI: {
-        *++sp = tl_int_value(pc->u.i);
-        break;
-      }
-      case OP_PUSHUNDEF: {
-        *++sp = tl_undef_value();
-        break;
-      }
-      case OP_GREF: {
-        *++sp = pc->u.gvar->cdr;
-        break;
-      }
-      case OP_GSET: {
-        pc->u.gvar->cdr = *sp--;
-        break;
-      }
-      case OP_CONS: {
-        tl_value a;
-        tl_value b;
-        a = *sp--;
-        b = *sp--;
-        *++sp = tl_cons(tl, a, b);
-        break;
-      }
-      case OP_ADD: {
-        tl_value a;
-        tl_value b;
-
-        a = *sp--;
-        b = *sp--;
-        *++sp = tl_int_value(tl_int(a) + tl_int(b));
-        break;
-      }
-      case OP_STOP: {
-        goto STOP;
-      }
+  VM_LOOP {
+    CASE(OP_PUSHNIL) {
+      *++sp = tl_nil_value();
+      NEXT;
     }
-    pc++;
+    CASE(OP_PUSHI) {
+      *++sp = tl_int_value(pc->u.i);
+      NEXT;
+    }
+    CASE(OP_PUSHUNDEF) {
+      *++sp = tl_undef_value();
+      NEXT;
+    }
+    CASE(OP_GREF) {
+      *++sp = pc->u.gvar->cdr;
+      NEXT;
+    }
+    CASE(OP_GSET) {
+      pc->u.gvar->cdr = *sp--;
+      NEXT;
+    }
+    CASE(OP_CONS) {
+      tl_value a;
+      tl_value b;
+      a = *sp--;
+      b = *sp--;
+      *++sp = tl_cons(tl, a, b);
+      NEXT;
+    }
+    CASE(OP_ADD) {
+      tl_value a;
+      tl_value b;
+
+      a = *sp--;
+      b = *sp--;
+      *++sp = tl_int_value(tl_int(a) + tl_int(b));
+      NEXT;
+    }
+    CASE(OP_STOP) { goto STOP; }
   }
+  VM_LOOP_END;
 
 STOP:
   return *sp;
