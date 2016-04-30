@@ -3,6 +3,7 @@
 
 #include "trial-lang.h"
 #include "trial-lang/gc.h"
+#include "trial-lang/irep.h"
 
 void init_heap_page(struct heap_page *heap) {
   union header *base;
@@ -142,6 +143,30 @@ static bool is_marked(union header *p) { return p->s.mark == TL_GC_MARK; }
 
 static void gc_unmark(union header *p) { p->s.mark = TL_GC_UNMARK; }
 
+static void gc_finalize_object(tl_state *tl, struct tl_object *obj) {
+  switch (obj->tt) {
+    case TL_TT_SYMBOL: {
+      char *name;
+      name = ((struct tl_symbol *)obj)->name;
+      tl_free(tl, name);
+      break;
+    }
+    case TL_TT_PAIR: {
+      break;
+    }
+    case TL_TT_PROC: {
+      struct tl_proc *proc;
+
+      proc = (struct tl_proc *)obj;
+
+      tl_free(tl, proc->u.irep->code);
+      tl_free(tl, proc->u.irep);
+    }
+    default:
+      tl_raise(tl, "gc_finalize_object logic has flawed");
+  }
+}
+
 static void gc_sweep_phase(tl_state *tl) {
   union header *base;
   union header *bp;
@@ -155,6 +180,8 @@ static void gc_sweep_phase(tl_state *tl) {
         gc_unmark(bp);
         continue;
       }
+
+      gc_finalize_object(tl, (struct tl_object *)(bp + 1));
 
       if (bp + bp->s.size == p->s.ptr) {
         bp->s.size += p->s.ptr->s.size;

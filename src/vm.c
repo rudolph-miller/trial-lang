@@ -2,31 +2,7 @@
 #include <stdio.h>
 
 #include "trial-lang.h"
-
-enum tl_instruction {
-  OP_PUSHNIL,
-  OP_PUSHI,
-  OP_PUSHUNDEF,
-  OP_GREF,
-  OP_GSET,
-  OP_CONS,
-  OP_ADD,
-  OP_STOP
-};
-
-struct tl_code {
-  enum tl_instruction inst;
-  union {
-    int i;
-    struct tl_pair *gvar;
-  } u;
-};
-
-struct tl_irep {
-  struct tl_code *code;
-  size_t clen;
-  size_t ccapa;
-};
+#include "trial-lang/irep.h"
 
 static tl_value tl_assq(tl_state *tl, tl_value key, tl_value assoc) {
   tl_value cell;
