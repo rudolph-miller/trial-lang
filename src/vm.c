@@ -85,6 +85,7 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
   tl_value *sp;
+  int ai = tl_gc_arena_preserve(tl);
 
   pc = proc->u.irep->code;
   sp = tl->sp;
@@ -113,9 +114,10 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
     CASE(OP_CONS) {
       tl_value a;
       tl_value b;
-      a = POP();
-      b = POP();
+      tl_gc_protect(tl, a = POP());
+      tl_gc_protect(tl, b = POP());
       PUSH(tl_cons(tl, a, b));
+      tl_gc_arena_restore(tl, ai);
       NEXT;
     }
     CASE(OP_ADD) {
