@@ -5,8 +5,6 @@
 #include "trial-lang/gc.h"
 #include "trial-lang/irep.h"
 
-#define GC_DEBUG 1
-
 void init_heap_page(struct heap_page *heap) {
   union header *base;
   union header *freep;

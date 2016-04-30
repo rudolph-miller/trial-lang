@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#include "trial-lang-conf.h"
 #include "trial-lang/value.h"
 
 struct tl_env {
