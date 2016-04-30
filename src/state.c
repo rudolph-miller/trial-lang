@@ -1,6 +1,7 @@
 #include <stdlib.h>
 
 #include "trial-lang.h"
+#include "trial-lang/gc.h"
 
 static struct tl_env *tl_new_empty_env() {
   struct tl_env *env;
@@ -18,6 +19,10 @@ tl_state *tl_open() {
   tl = (tl_state *)malloc(sizeof(tl_state));
   tl->stbase = tl->sp = (tl_value *)malloc(sizeof(tl_value) * 1024);
   tl->stend = tl->stbase + 1024;
+
+  tl->heap = (struct heap_page *)malloc(sizeof(struct heap_page));
+  init_heap_page(tl->heap);
+
   tl->global_env = tl_new_empty_env();
 
   return tl;

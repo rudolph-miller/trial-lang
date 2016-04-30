@@ -11,24 +11,21 @@ struct tl_env {
   struct tl_env *parent;
 };
 
-struct tl_proc {
-  union {
-    struct tl_irep *irep;
-  } u;
-};
+#define TL_HEAP_SIZE 1024
 
 typedef struct {
   tl_value *sp;
   tl_value *stbase;
   tl_value *stend;
   struct tl_env *global_env;
+  struct heap_page *heap;
 } tl_state;
 
 tl_state *tl_open();
 void tl_close(tl_state *);
 
 void *tl_alloc(tl_state *, size_t);
-struct tl_object *tl_gc_alloc(tl_state *, size_t, enum tl_tt);
+struct tl_object *tl_obj_alloc(tl_state *, size_t, enum tl_tt);
 void tl_free(tl_state *, void *);
 
 tl_value tl_cons(tl_state *, tl_value, tl_value);

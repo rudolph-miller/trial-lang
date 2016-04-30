@@ -205,6 +205,9 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
       irep->clen++;
       break;
     }
+    case TL_TT_PROC: {
+      break;
+    }
   }
 }
 
@@ -213,7 +216,7 @@ struct tl_proc *tl_codegen(tl_state *tl, tl_value obj, struct tl_env *env) {
   struct tl_irep *irep;
   struct tl_code *code;
 
-  proc = tl_alloc(tl, sizeof(struct tl_proc));
+  proc = (struct tl_proc *)tl_obj_alloc(tl, sizeof(struct tl_proc), TL_TT_PROC);
 
   proc->u.irep = irep = (struct tl_irep *)malloc(sizeof(struct tl_irep));
   irep->code = code = (struct tl_code *)malloc(sizeof(struct tl_code) * 1024);

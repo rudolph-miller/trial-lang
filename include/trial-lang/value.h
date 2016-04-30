@@ -21,7 +21,8 @@ enum tl_tt {
   TL_TT_INT,
   TL_TT_UNDEF,
   TL_TT_PAIR,
-  TL_TT_SYMBOL
+  TL_TT_SYMBOL,
+  TL_TT_PROC
 };
 
 #define TL_OBJECT_HEADER enum tl_tt tt;
@@ -41,8 +42,16 @@ struct tl_symbol {
   char *name;
 };
 
+struct tl_proc {
+  TL_OBJECT_HEADER
+    union {
+      struct tl_irep *irep;
+    } u;
+};
+
 #define tl_pair_ptr(o) ((struct tl_pair *)o.u.data)
 #define tl_symbol_ptr(o) ((struct tl_symbol *)o.u.data)
+#define tl_proc_ptr(o) ((struct tl_proc *)o.u.data)
 
 enum tl_tt tl_type(tl_value);
 
