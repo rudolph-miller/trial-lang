@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "trial-lang.h"
 #include "trial-lang/gc.h"
@@ -20,6 +21,8 @@ void init_heap_page(struct heap_page *heap) {
   freep->s.ptr = base;
   freep->s.size =
       ((char *)p + TL_HEAP_SIZE - (char *)freep) / sizeof(union header);
+
+  heap->endp = freep + freep->s.size;
 }
 
 void *tl_alloc(tl_state *tl, size_t size) {
@@ -31,7 +34,7 @@ void *tl_alloc(tl_state *tl, size_t size) {
   return ptr;
 }
 
-void tl_free(tl_state *tl, void *ptr) { free(ptr); }
+void tl_free(tl_state *tl, void *ptr) { tl_free(tl, ptr); }
 
 static void gc_protect(tl_state *tl, struct tl_object *obj) {
   if (tl->arena_idx >= TL_ARENA_SIZE) tl_raise(tl, "arena has overflowed");
@@ -52,7 +55,7 @@ int tl_gc_arena_preserve(tl_state *tl) { return tl->arena_idx; }
 
 void tl_gc_arena_restore(tl_state *tl, int state) { tl->arena_idx = state; }
 
-static void *tl_gc_alloc(tl_state *tl, size_t size) {
+static void *gc_alloc(tl_state *tl, size_t size) {
   union header *freep;
   union header *p;
   union header *prevp;
@@ -76,7 +79,103 @@ static void *tl_gc_alloc(tl_state *tl, size_t size) {
   }
   tl->heap->freep = prevp;
 
+  p->s.mark = TL_GC_UNMARK;
   return (void *)(p + 1);
+}
+
+static void gc_mark(tl_state *, tl_value);
+
+static void gc_mark_object(tl_state *tl, struct tl_object *obj) {
+  union header *p;
+
+  p = (union header *)obj - 1;
+  p->s.mark = TL_GC_MARK;
+
+  switch (obj->tt) {
+    case TL_TT_PAIR: {
+      gc_mark(tl, ((struct tl_pair *)obj)->car);
+      gc_mark(tl, ((struct tl_pair *)obj)->cdr);
+      break;
+    }
+    case TL_TT_SYMBOL: {
+      break;
+    }
+    case TL_TT_PROC: {
+      break;
+    }
+    default:
+      tl_raise(tl, "gc_mark_object logic has flawed");
+  }
+}
+
+static void gc_mark(tl_state *tl, tl_value v) {
+  struct tl_object *obj;
+
+  if (v.type != TL_VTYPE_HEAP) return;
+
+  obj = tl_object_ptr(v);
+
+  gc_mark_object(tl, obj);
+}
+
+static void gc_mark_phase(tl_state *tl) {
+  tl_value *stack;
+  struct tl_env *env;
+  int i;
+
+  for (stack = tl->stbase; stack != tl->sp; ++stack) {
+    gc_mark(tl, *stack);
+  }
+  gc_mark(tl, *stack);
+
+  for (i = 0; i < tl->arena_idx; ++i) {
+    gc_mark_object(tl, tl->arena[i]);
+  }
+
+  env = tl->global_env;
+  do {
+    gc_mark(tl, env->assoc);
+  } while ((env = env->parent) != NULL);
+}
+
+static bool is_marked(union header *p) { return p->s.mark == TL_GC_MARK; }
+
+static void gc_unmark(union header *p) { p->s.mark = TL_GC_UNMARK; }
+
+static void gc_sweep_phase(tl_state *tl) {
+  union header *base;
+  union header *bp;
+  union header *p;
+
+  base = tl->heap->base;
+  for (p = base->s.ptr; p != base; p = p->s.ptr) {
+    for (bp = p + p->s.size; bp != p->s.ptr; bp += bp->s.size) {
+      if (p >= p->s.ptr && bp == tl->heap->endp) break;
+      if (is_marked(bp)) {
+        gc_unmark(bp);
+        continue;
+      }
+
+      if (bp + bp->s.size == p->s.ptr) {
+        bp->s.size += p->s.ptr->s.size;
+        bp->s.ptr = p->s.ptr->s.ptr;
+      } else {
+        bp->s.ptr = p->s.ptr;
+      }
+
+      if (p + p->s.size == bp) {
+        p->s.size += bp->s.size;
+        p->s.ptr = bp->s.ptr;
+      } else {
+        p->s.ptr = bp;
+      }
+    }
+  }
+}
+
+static void tl_gc_run(tl_state *tl) {
+  gc_mark_phase(tl);
+  gc_sweep_phase(tl);
 }
 
 void tl_gc_free(tl_state *tl, void *ptr) {
@@ -108,7 +207,13 @@ void tl_gc_free(tl_state *tl, void *ptr) {
 struct tl_object *tl_obj_alloc(tl_state *tl, size_t size, enum tl_tt tt) {
   struct tl_object *obj;
 
-  obj = (struct tl_object *)malloc(size);
+  obj = (struct tl_object *)gc_alloc(tl, size);
+  if (obj == NULL) {
+    puts("gc run!");
+    tl_gc_run(tl);
+    obj = (struct tl_object *)gc_alloc(tl, size);
+    if (obj == NULL) tl_raise(tl, "memory exhausted");
+  }
   obj->tt = tt;
 
   gc_protect(tl, obj);
