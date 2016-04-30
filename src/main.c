@@ -11,8 +11,11 @@ int main() {
   int char_index;
   tl_value v;
   struct tl_proc *proc;
+  int ai;
 
   tl = tl_open();
+
+  ai = tl_gc_arena_preserve(tl);
 
   while (1) {
     printf("> ");
@@ -30,6 +33,8 @@ int main() {
     v = tl_run(tl, proc, tl_nil_value());
     tl_debug(tl, v);
     printf("\n");
+
+    tl_gc_arena_restore(tl, ai);
   }
 
 overflow:
