@@ -23,6 +23,8 @@ tl_state *tl_open() {
   tl->heap = (struct heap_page *)malloc(sizeof(struct heap_page));
   init_heap_page(tl->heap);
 
+  tl->arena_idx = 0;
+
   tl->global_env = tl_new_empty_env();
 
   return tl;

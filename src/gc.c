@@ -33,6 +33,25 @@ void *tl_alloc(tl_state *tl, size_t size) {
 
 void tl_free(tl_state *tl, void *ptr) { free(ptr); }
 
+static void gc_protect(tl_state *tl, struct tl_object *obj) {
+  if (tl->arena_idx >= TL_ARENA_SIZE) tl_raise(tl, "arena has overflowed");
+
+  tl->arena[tl->arena_idx++] = obj;
+}
+
+void tl_gc_protect(tl_state *tl, tl_value v) {
+  struct tl_object *obj;
+
+  if (v.type != TL_VTYPE_HEAP) return;
+
+  obj = tl_object_ptr(v);
+  gc_protect(tl, obj);
+}
+
+int tl_gc_arena_preserve(tl_state *tl) { return tl->arena_idx; }
+
+void tl_gc_arena_restore(tl_state *tl, int state) { tl->arena_idx = state; }
+
 static void *tl_gc_alloc(tl_state *tl, size_t size) {
   union header *freep;
   union header *p;
@@ -92,5 +111,6 @@ struct tl_object *tl_obj_alloc(tl_state *tl, size_t size, enum tl_tt tt) {
   obj = (struct tl_object *)malloc(size);
   obj->tt = tt;
 
+  gc_protect(tl, obj);
   return obj;
 }

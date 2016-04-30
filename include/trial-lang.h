@@ -11,6 +11,7 @@ struct tl_env {
   struct tl_env *parent;
 };
 
+#define TL_ARENA_SIZE 1024
 #define TL_HEAP_SIZE 1024
 
 typedef struct {
@@ -19,6 +20,8 @@ typedef struct {
   tl_value *stend;
   struct tl_env *global_env;
   struct heap_page *heap;
+  struct tl_object *arena[TL_ARENA_SIZE];
+  int arena_idx;
 } tl_state;
 
 tl_state *tl_open();
@@ -27,6 +30,10 @@ void tl_close(tl_state *);
 void *tl_alloc(tl_state *, size_t);
 struct tl_object *tl_obj_alloc(tl_state *, size_t, enum tl_tt);
 void tl_free(tl_state *, void *);
+
+void tl_gc_protect(tl_state *, tl_value);
+int tl_gc_arena_preserve(tl_state *);
+void tl_gc_arena_restore(tl_state *, int);
 
 tl_value tl_cons(tl_state *, tl_value, tl_value);
 tl_value tl_car(tl_state *, tl_value);

@@ -49,6 +49,7 @@ struct tl_proc {
     } u;
 };
 
+#define tl_object_ptr(o) ((struct tl_object *)o.u.data)
 #define tl_pair_ptr(o) ((struct tl_pair *)o.u.data)
 #define tl_symbol_ptr(o) ((struct tl_symbol *)o.u.data)
 #define tl_proc_ptr(o) ((struct tl_proc *)o.u.data)
