@@ -79,6 +79,9 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
   }                 \
   }
 
+#define PUSH(v) (*++sp = (v))
+#define POP() (*sp--)
+
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
   tl_value *sp;
@@ -88,40 +91,39 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
 
   VM_LOOP {
     CASE(OP_PUSHNIL) {
-      *++sp = tl_nil_value();
+      PUSH(tl_nil_value());
       NEXT;
     }
     CASE(OP_PUSHI) {
-      *++sp = tl_int_value(pc->u.i);
+      PUSH(tl_int_value(pc->u.i));
       NEXT;
     }
     CASE(OP_PUSHUNDEF) {
-      *++sp = tl_undef_value();
+      PUSH(tl_undef_value());
       NEXT;
     }
     CASE(OP_GREF) {
-      *++sp = pc->u.gvar->cdr;
+      PUSH(pc->u.gvar->cdr);
       NEXT;
     }
     CASE(OP_GSET) {
-      pc->u.gvar->cdr = *sp--;
+      pc->u.gvar->cdr = POP();
       NEXT;
     }
     CASE(OP_CONS) {
       tl_value a;
       tl_value b;
-      a = *sp--;
-      b = *sp--;
-      *++sp = tl_cons(tl, a, b);
+      a = POP();
+      b = POP();
+      PUSH(tl_cons(tl, a, b));
       NEXT;
     }
     CASE(OP_ADD) {
       tl_value a;
       tl_value b;
-
-      a = *sp--;
-      b = *sp--;
-      *++sp = tl_int_value(tl_int(a) + tl_int(b));
+      a = POP();
+      b = POP();
+      PUSH(tl_int_value(tl_int(a) + tl_int(b)));
       NEXT;
     }
     CASE(OP_STOP) { goto STOP; }
