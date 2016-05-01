@@ -112,6 +112,49 @@ STOP:
   return POP();
 }
 
+static void print_irep(tl_state *tl, struct tl_irep *irep) {
+  int i;
+
+  printf("## irep %p [clen = %zd, ccapa = %zd]\n", irep, irep->clen,
+         irep->ccapa);
+  for (i = 0; i < irep->clen; ++i) {
+    switch (irep->code[i].inst) {
+      case OP_PUSHNIL: {
+        puts("OP_PUSHNIL");
+        break;
+      }
+      case OP_PUSHI: {
+        printf("OP_PUSHI\t%d\n", irep->code[i].u.i);
+        break;
+      }
+      case OP_PUSHUNDEF: {
+        puts("OP_PUSHUNDEF");
+        break;
+      }
+      case OP_GREF: {
+        printf("OP_GREF\t%p\n", irep->code[i].u.gvar);
+        break;
+      }
+      case OP_GSET: {
+        printf("OP_GSET\t%p\n", irep->code[i].u.gvar);
+        break;
+      }
+      case OP_CONS: {
+        puts("OP_CONS");
+        break;
+      }
+      case OP_ADD: {
+        puts("OP_ADD");
+        break;
+      }
+      case OP_STOP: {
+        puts("OP_STOP");
+        break;
+      }
+    }
+  }
+}
+
 void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
             struct tl_env *env) {
   tl_value sDEFINE;
@@ -207,6 +250,10 @@ struct tl_proc *tl_codegen(tl_state *tl, tl_value obj, struct tl_env *env) {
 
   irep->code[irep->clen].inst = OP_STOP;
   irep->clen++;
+
+#if VM_DEBUG
+  print_irep(tl, irep);
+#endif
 
   return proc;
 }
