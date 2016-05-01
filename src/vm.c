@@ -3,6 +3,7 @@
 
 #include "trial-lang.h"
 #include "trial-lang/irep.h"
+#include "trial-lang/proc.h"
 
 static tl_value tl_assq(tl_state *tl, tl_value key, tl_value assoc) {
   tl_value cell;
@@ -85,6 +86,17 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
       pc->u.gvar->cdr = POP();
       NEXT;
     }
+    CASE(OP_CALL) {
+      tl_value c;
+      struct tl_proc *proc;
+      int ai = tl_gc_arena_preserve(tl);
+
+      tl_gc_protect(tl, c = POP());
+      proc = tl_proc_ptr(c);
+      PUSH(proc->u.cfunc(tl));
+      tl_gc_arena_restore(tl, ai);
+      NEXT;
+    }
     CASE(OP_CONS) {
       tl_value a;
       tl_value b;
@@ -137,6 +149,10 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
         printf("OP_GSET\t%p\n", irep->code[i].u.gvar);
         break;
       }
+      case OP_CALL: {
+        printf("OP_CALL\t%d\n", irep->code[i].u.i);
+        break;
+      }
       case OP_CONS: {
         puts("OP_CONS");
         break;
@@ -152,6 +168,9 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
     }
   }
 }
+
+static void tl_gen_call(tl_state *, struct tl_irep *, tl_value,
+                        struct tl_env *);
 
 void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
             struct tl_env *env) {
@@ -207,6 +226,7 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
         irep->clen++;
         break;
       } else {
+        tl_gen_call(tl, irep, obj, env);
         break;
       }
     }
@@ -230,6 +250,29 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
       break;
     }
   }
+}
+
+static tl_value reverse(tl_state *tl, tl_value list, tl_value acc) {
+  if (tl_nil_p(list)) return acc;
+  return reverse(tl, tl_cdr(tl, list), tl_cons(tl, tl_car(tl, list), acc));
+}
+
+static void tl_gen_call(tl_state *tl, struct tl_irep *irep, tl_value obj,
+                        struct tl_env *env) {
+  tl_value seq;
+  int i = 0;
+
+  seq = reverse(tl, obj, tl_nil_value());
+  for (; !tl_nil_p(seq); seq = tl_cdr(tl, seq)) {
+    tl_value v;
+
+    v = tl_car(tl, seq);
+    tl_gen(tl, irep, v, env);
+    ++i;
+  }
+  irep->code[irep->clen].inst = OP_CALL;
+  irep->code[irep->clen].u.i = i - 1;
+  irep->clen++;
 }
 
 struct tl_proc *tl_codegen(tl_state *tl, tl_value obj, struct tl_env *env) {

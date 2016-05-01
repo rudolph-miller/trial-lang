@@ -7,6 +7,7 @@ enum tl_instruction {
   OP_PUSHUNDEF,
   OP_GREF,
   OP_GSET,
+  OP_CALL,
   OP_CONS,
   OP_ADD,
   OP_STOP

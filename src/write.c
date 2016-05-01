@@ -2,6 +2,7 @@
 #include <stdlib.h>
 
 #include "trial-lang.h"
+#include "trial-lang/proc.h"
 
 void tl_debug(tl_state *tl, tl_value obj) {
   switch (tl_type(obj)) {

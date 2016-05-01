@@ -4,6 +4,7 @@
 #include "trial-lang.h"
 #include "trial-lang/gc.h"
 #include "trial-lang/irep.h"
+#include "trial-lang/proc.h"
 
 void init_heap_page(struct heap_page *heap) {
   union header *base;
