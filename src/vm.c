@@ -55,16 +55,14 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
   }                 \
   }
 
-#define PUSH(v) (*++sp = (v))
-#define POP() (*sp--)
+#define PUSH(v) (*++tl->sp = (v))
+#define POP() (*tl->sp--)
 
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
-  tl_value *sp;
   int ai = tl_gc_arena_preserve(tl);
 
   pc = proc->u.irep->code;
-  sp = tl->sp;
 
   VM_LOOP {
     CASE(OP_PUSHNIL) {
