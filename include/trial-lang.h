@@ -12,9 +12,6 @@ struct tl_env {
   struct tl_env *parent;
 };
 
-#define TL_ARENA_SIZE 1024
-#define TL_HEAP_SIZE 1024
-
 typedef struct {
   tl_value *sp;
   tl_value *stbase;
