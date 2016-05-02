@@ -4,8 +4,8 @@ enum tl_tt tl_type(tl_value v) {
   switch (v.type) {
     case TL_VTYPE_NIL:
       return TL_TT_NIL;
-    case TL_VTYPE_INT:
-      return TL_TT_INT;
+    case TL_VTYPE_FLOAT:
+      return TL_TT_FLOAT;
     case TL_VTYPE_UNDEF:
       return TL_TT_UNDEF;
     case TL_VTYPE_HEAP:
@@ -29,11 +29,11 @@ tl_value tl_obj_value(void *obj) {
   return v;
 }
 
-tl_value tl_int_value(int i) {
+tl_value tl_float_value(double f) {
   tl_value v;
 
-  v.type = TL_VTYPE_INT;
-  v.u.i = i;
+  v.type = TL_VTYPE_FLOAT;
+  v.u.f = f;
   return v;
 }
 

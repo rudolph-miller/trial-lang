@@ -19,8 +19,8 @@ void tl_debug(tl_state *tl, tl_value obj) {
     case TL_TT_SYMBOL:
       printf("%s", tl_symbol_ptr(obj)->name);
       break;
-    case TL_TT_INT:
-      printf("%d", tl_int(obj));
+    case TL_TT_FLOAT:
+      printf("%f", tl_float(obj));
       break;
     case TL_TT_UNDEF:
       printf("#<undef>");
@@ -32,4 +32,22 @@ void tl_debug(tl_state *tl, tl_value obj) {
       printf("#<unknown type>");
       break;
   }
+}
+
+static tl_value tl_port_write(tl_state *tl) {
+  tl_value v;
+
+  tl_get_args(tl, "o", &v);
+  tl_debug(tl, v);
+  return tl_undef_value();
+}
+
+static tl_value tl_port_newline(tl_state *tl) {
+  puts("");
+  return tl_undef_value();
+}
+
+void tl_init_port(tl_state *tl) {
+  tl_defun(tl, "write", tl_port_write);
+  tl_defun(tl, "newline", tl_port_newline);
 }

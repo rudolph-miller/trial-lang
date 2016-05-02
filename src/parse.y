@@ -25,10 +25,10 @@ int yylex_destroy();
 }
 
 %token tLPAREN tRPAREN tDOT tQUOTE
-%token <datum> tSYMBOL tINT
+%token <datum> tSYMBOL tNUMBER
 
 %type <datum> datum simple_datum symbol compound_datum
-%type <datum> number integer list list_tail quoted_symbol
+%type <datum> number list list_tail quoted_symbol
 
 %%
 
@@ -61,14 +61,7 @@ symbol
 ;
 
 number
-  : integer
-;
-
-integer
-  : tINT
-  {
-    $$ = $1;
-  }
+  : tNUMBER
 ;
 
 compound_datum

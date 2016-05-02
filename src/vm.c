@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "trial-lang.h"
 #include "trial-lang/irep.h"
@@ -44,6 +45,36 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
   return tl_pair_ptr(cell);
 }
 
+void tl_defun(tl_state *tl, const char *name, tl_func_t cfunc) {
+  struct tl_proc *proc;
+  struct tl_pair *cell;
+
+  proc = (struct tl_proc *)tl_obj_alloc(tl, sizeof(struct tl_proc), TL_TT_PROC);
+  proc->u.cfunc = cfunc;
+  cell = tl_env_define(tl, tl_intern_cstr(tl, name), tl->global_env);
+  cell->cdr = tl_obj_value(proc);
+}
+
+void tl_get_args(tl_state *tl, const char *format, ...) {
+  char c;
+  int i = -1;
+  va_list ap;
+
+  va_start(ap, format);
+  while ((c = *format++)) {
+    switch (c) {
+      case 'o': {
+        tl_value *p;
+
+        p = va_arg(ap, tl_value *);
+        *p = tl->sp[i];
+        i--;
+        break;
+      }
+    }
+  }
+}
+
 #define VM_LOOP \
   for (;;) {    \
     switch (pc->inst) {
@@ -56,8 +87,11 @@ static struct tl_pair *tl_env_define(tl_state *tl, tl_value sym,
   }                 \
   }
 
-#define PUSH(v) (*++tl->sp = (v))
-#define POP() (*tl->sp--)
+#define PUSH(v) (*tl->sp++ = (v))
+#define POP() (*--tl->sp)
+
+#define PUSHCI() (tl->ci++)
+#define POPCI() (--tl->ci)
 
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
@@ -65,13 +99,17 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
 
   pc = proc->u.irep->code;
 
+  PUSHCI();
+  tl->ci->proc = proc;
+  tl->ci->argc = 0;
+
   VM_LOOP {
     CASE(OP_PUSHNIL) {
       PUSH(tl_nil_value());
       NEXT;
     }
-    CASE(OP_PUSHI) {
-      PUSH(tl_int_value(pc->u.i));
+    CASE(OP_PUSHNUM) {
+      PUSH(tl_float_value(pc->u.f));
       NEXT;
     }
     CASE(OP_PUSHUNDEF) {
@@ -89,12 +127,17 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
     CASE(OP_CALL) {
       tl_value c;
       struct tl_proc *proc;
+      tl_callinfo *ci;
       int ai = tl_gc_arena_preserve(tl);
 
       tl_gc_protect(tl, c = POP());
       proc = tl_proc_ptr(c);
+      ci = PUSHCI();
+      ci->proc = proc;
+      ci->argc = pc->u.i;
       PUSH(proc->u.cfunc(tl));
       tl_gc_arena_restore(tl, ai);
+      POPCI();
       NEXT;
     }
     CASE(OP_CONS) {
@@ -111,7 +154,31 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
       tl_value b;
       a = POP();
       b = POP();
-      PUSH(tl_int_value(tl_int(a) + tl_int(b)));
+      PUSH(tl_float_value(tl_float(a) + tl_float(b)));
+      NEXT;
+    }
+    CASE(OP_SUB) {
+      tl_value a;
+      tl_value b;
+      a = POP();
+      b = POP();
+      PUSH(tl_float_value(tl_float(a) - tl_float(b)));
+      NEXT;
+    }
+    CASE(OP_MUL) {
+      tl_value a;
+      tl_value b;
+      a = POP();
+      b = POP();
+      PUSH(tl_float_value(tl_float(a) * tl_float(b)));
+      NEXT;
+    }
+    CASE(OP_DIV) {
+      tl_value a;
+      tl_value b;
+      a = POP();
+      b = POP();
+      PUSH(tl_float_value(tl_float(a) / tl_float(b)));
       NEXT;
     }
     CASE(OP_STOP) { goto STOP; }
@@ -119,6 +186,7 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   VM_LOOP_END;
 
 STOP:
+  POPCI();
   return POP();
 }
 
@@ -133,8 +201,8 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
         puts("OP_PUSHNIL");
         break;
       }
-      case OP_PUSHI: {
-        printf("OP_PUSHI\t%d\n", irep->code[i].u.i);
+      case OP_PUSHNUM: {
+        printf("OP_PUSHNUM\t%f\n", irep->code[i].u.f);
         break;
       }
       case OP_PUSHUNDEF: {
@@ -161,6 +229,18 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
         puts("OP_ADD");
         break;
       }
+      case OP_SUB: {
+        puts("OP_SUB");
+        break;
+      }
+      case OP_MUL: {
+        puts("OP_MUL");
+        break;
+      }
+      case OP_DIV: {
+        puts("OP_DIV");
+        break;
+      }
       case OP_STOP: {
         puts("OP_STOP");
         break;
@@ -177,10 +257,16 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
   tl_value sDEFINE;
   tl_value sCONS;
   tl_value sADD;
+  tl_value sSUB;
+  tl_value sMUL;
+  tl_value sDIV;
 
-  sDEFINE = tl_intern_cstr(tl, "define");
-  sCONS = tl_intern_cstr(tl, "cons");
-  sADD = tl_intern_cstr(tl, "add");
+  sDEFINE = tl->sDEFINE;
+  sCONS = tl->sCONS;
+  sADD = tl->sADD;
+  sSUB = tl->sSUB;
+  sMUL = tl->sMUL;
+  sDIV = tl->sDIV;
 
   switch (tl_type(obj)) {
     case TL_TT_SYMBOL: {
@@ -225,14 +311,35 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
         irep->code[irep->clen].inst = OP_ADD;
         irep->clen++;
         break;
+      } else if (tl_eq_p(tl, proc, sSUB)) {
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, tl_cdr(tl, obj))), env);
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, obj)), env);
+
+        irep->code[irep->clen].inst = OP_SUB;
+        irep->clen++;
+        break;
+      } else if (tl_eq_p(tl, proc, sMUL)) {
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, tl_cdr(tl, obj))), env);
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, obj)), env);
+
+        irep->code[irep->clen].inst = OP_MUL;
+        irep->clen++;
+        break;
+      } else if (tl_eq_p(tl, proc, sDIV)) {
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, tl_cdr(tl, obj))), env);
+        tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, obj)), env);
+
+        irep->code[irep->clen].inst = OP_DIV;
+        irep->clen++;
+        break;
       } else {
         tl_gen_call(tl, irep, obj, env);
         break;
       }
     }
-    case TL_TT_INT: {
-      irep->code[irep->clen].inst = OP_PUSHI;
-      irep->code[irep->clen].u.i = tl_int(obj);
+    case TL_TT_FLOAT: {
+      irep->code[irep->clen].inst = OP_PUSHNUM;
+      irep->code[irep->clen].u.f = tl_float(obj);
       irep->clen++;
       break;
     }

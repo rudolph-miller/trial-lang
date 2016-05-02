@@ -7,20 +7,34 @@
 #include "trial-lang-conf.h"
 #include "trial-lang/value.h"
 
-struct tl_env {
-  tl_value assoc;
-  struct tl_env *parent;
-};
+typedef struct tl_callinfo {
+  struct tl_proc *proc;
+  int argc;
+} tl_callinfo;
 
 typedef struct {
   tl_value *sp;
   tl_value *stbase;
   tl_value *stend;
+
+  tl_value sDEFINE;
+  tl_value sCONS;
+  tl_value sADD;
+  tl_value sSUB;
+  tl_value sMUL;
+  tl_value sDIV;
+
+  tl_callinfo *ci;
+  tl_callinfo *cibase;
+  tl_callinfo *ciend;
+
   struct tl_env *global_env;
   struct heap_page *heap;
   struct tl_object *arena[TL_ARENA_SIZE];
   int arena_idx;
 } tl_state;
+
+typedef tl_value (*tl_func_t)(tl_state *);
 
 tl_state *tl_open();
 void tl_close(tl_state *);
@@ -32,6 +46,9 @@ void tl_free(tl_state *, void *);
 void tl_gc_protect(tl_state *, tl_value);
 int tl_gc_arena_preserve(tl_state *);
 void tl_gc_arena_restore(tl_state *, int);
+
+void tl_get_args(tl_state *, const char *, ...);
+void tl_defun(tl_state *, const char *, tl_func_t);
 
 tl_value tl_cons(tl_state *, tl_value, tl_value);
 tl_value tl_car(tl_state *, tl_value);

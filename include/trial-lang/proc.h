@@ -1,6 +1,11 @@
 #ifndef PROC_H__
 #define PROC_H__
 
+struct tl_env {
+  tl_value assoc;
+  struct tl_env *parent;
+};
+
 struct tl_proc {
   TL_OBJECT_HEADER
     union {

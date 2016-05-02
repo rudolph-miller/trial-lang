@@ -3,7 +3,7 @@
 
 enum tl_vtype {
   TL_VTYPE_NIL,
-  TL_VTYPE_INT,
+  TL_VTYPE_FLOAT,
   TL_VTYPE_UNDEF,
   TL_VTYPE_HEAP
 };
@@ -12,13 +12,13 @@ typedef struct {
   enum tl_vtype type;
   union {
     void *data;
-    int i;
+    double f;
   } u;
 } tl_value;
 
 enum tl_tt {
   TL_TT_NIL,
-  TL_TT_INT,
+  TL_TT_FLOAT,
   TL_TT_UNDEF,
   TL_TT_PAIR,
   TL_TT_SYMBOL,
@@ -53,9 +53,9 @@ enum tl_tt tl_type(tl_value);
 tl_value tl_nil_value();
 tl_value tl_undef_value();
 tl_value tl_obj_value(void *);
-tl_value tl_int_value(int);
+tl_value tl_float_value(double);
 
-#define tl_int(v) ((v).u.i)
+#define tl_float(v) ((v).u.f)
 
 #define tl_nil_p(v) (tl_type(v) == TL_TT_NIL)
 
