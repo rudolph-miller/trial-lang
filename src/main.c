@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <editline/readline.h>
 
 #include "trial-lang.h"
 
@@ -6,8 +7,7 @@
 
 int main() {
   tl_state *tl;
-  char line[LINE_MAX_LENGTH];
-  char last_char;
+  char *line;
   int char_index;
   tl_value v;
   struct tl_proc *proc;
@@ -18,14 +18,8 @@ int main() {
   ai = tl_gc_arena_preserve(tl);
 
   while (1) {
-    printf("> ");
     char_index = 0;
-    while ((last_char = getchar()) != '\n') {
-      if (last_char == EOF) goto eof;
-      if (char_index == LINE_MAX_LENGTH) goto overflow;
-      line[char_index++] = last_char;
-    }
-    line[char_index] = '\0';
+    line = readline("> ");
 
     v = tl_parse(tl, line);
 
@@ -36,10 +30,6 @@ int main() {
 
     tl_gc_arena_restore(tl, ai);
   }
-
-overflow:
-  puts("Line has oveflowed.");
-  goto exit;
 
 eof:
   puts("");
