@@ -8,6 +8,8 @@ enum tl_instruction {
   OP_GREF,
   OP_GSET,
   OP_CALL,
+  OP_RET,
+  OP_LAMBDA,
   OP_CONS,
   OP_ADD,
   OP_SUB,
@@ -29,6 +31,10 @@ struct tl_irep {
   struct tl_code *code;
   size_t clen;
   size_t ccapa;
+
+  struct tl_irep **proto;
+  size_t plen;
+  size_t pcapa;
 };
 
 #endif

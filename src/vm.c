@@ -51,6 +51,7 @@ void tl_defun(tl_state *tl, const char *name, tl_func_t cfunc) {
 
   proc = (struct tl_proc *)tl_obj_alloc(tl, sizeof(struct tl_proc), TL_TT_PROC);
   proc->u.cfunc = cfunc;
+  proc->cfunc_p = true;
   cell = tl_env_define(tl, tl_intern_cstr(tl, name), tl->global_env);
   cell->cdr = tl_obj_value(proc);
 }
@@ -95,13 +96,14 @@ void tl_get_args(tl_state *tl, const char *format, ...) {
 
 tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
   struct tl_code *pc;
+  tl_callinfo *ci;
   int ai = tl_gc_arena_preserve(tl);
 
   pc = proc->u.irep->code;
 
-  PUSHCI();
-  tl->ci->proc = proc;
-  tl->ci->argc = 0;
+  ci = PUSHCI();
+  ci->proc = proc;
+  ci->argc = 0;
 
   VM_LOOP {
     CASE(OP_PUSHNIL) {
@@ -138,6 +140,18 @@ tl_value tl_run(tl_state *tl, struct tl_proc *proc, tl_value args) {
       PUSH(proc->u.cfunc(tl));
       tl_gc_arena_restore(tl, ai);
       POPCI();
+      NEXT;
+    }
+    CASE(OP_RET) { NEXT; }
+    CASE(OP_LAMBDA) {
+      struct tl_proc *proc;
+
+      proc = (struct tl_proc *)tl_obj_alloc(tl, sizeof(struct tl_proc *),
+                                            TL_TT_PROC);
+      proc->cfunc_p = false;
+      proc->u.irep = ci->proc->u.irep->proto[pc->u.i];
+      PUSH(tl_obj_value(proc));
+      tl_gc_arena_restore(tl, ai);
       NEXT;
     }
     CASE(OP_CONS) {
@@ -221,6 +235,14 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
         printf("OP_CALL\t%d\n", irep->code[i].u.i);
         break;
       }
+      case OP_RET: {
+        puts("OP_RET");
+        break;
+      }
+      case OP_LAMBDA: {
+        printf("OP_LAMBDA\t%d\n", irep->code[i].u.i);
+        break;
+      }
       case OP_CONS: {
         puts("OP_CONS");
         break;
@@ -249,12 +271,27 @@ static void print_irep(tl_state *tl, struct tl_irep *irep) {
   }
 }
 
+static struct tl_irep *new_irep(tl_state *tl) {
+  struct tl_irep *irep;
+
+  irep = (struct tl_irep *)tl_alloc(tl, sizeof(struct tl_irep));
+  irep->code = (struct tl_code *)tl_alloc(tl, sizeof(struct tl_code) * 1024);
+  irep->clen = 0;
+  irep->ccapa = 1024;
+  irep->proto = NULL;
+  irep->plen = irep->pcapa = 0;
+
+  return irep;
+}
+
 static void tl_gen_call(tl_state *, struct tl_irep *, tl_value,
                         struct tl_env *);
+static struct tl_irep *tl_gen_lambda(tl_state *, tl_value, struct tl_env *);
 
 void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
             struct tl_env *env) {
   tl_value sDEFINE;
+  tl_value sLAMBDA;
   tl_value sCONS;
   tl_value sADD;
   tl_value sSUB;
@@ -262,6 +299,7 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
   tl_value sDIV;
 
   sDEFINE = tl->sDEFINE;
+  sLAMBDA = tl->sLAMBDA;
   sCONS = tl->sCONS;
   sADD = tl->sADD;
   sSUB = tl->sSUB;
@@ -296,6 +334,23 @@ void tl_gen(tl_state *tl, struct tl_irep *irep, tl_value obj,
         irep->clen++;
         irep->code[irep->clen].inst = OP_PUSHUNDEF;
         irep->clen++;
+        break;
+      } else if (tl_eq_p(tl, proc, sLAMBDA)) {
+        if (irep->proto == NULL) {
+          irep->proto =
+              (struct tl_irep **)tl_alloc(tl, sizeof(struct tl_irep **) * 5);
+          irep->pcapa = 5;
+        }
+        if (irep->plen >= irep->pcapa) {
+          irep->proto =
+              (struct tl_irep **)tl_realloc(tl, irep->proto, irep->pcapa * 2);
+          irep->pcapa *= 2;
+        }
+        irep->code[irep->clen].inst = OP_LAMBDA;
+        irep->code[irep->clen].u.i = irep->plen;
+        irep->clen++;
+
+        irep->proto[irep->plen++] = tl_gen_lambda(tl, obj, env);
         break;
       } else if (tl_eq_p(tl, proc, sCONS)) {
         tl_gen(tl, irep, tl_car(tl, tl_cdr(tl, tl_cdr(tl, obj))), env);
@@ -382,17 +437,31 @@ static void tl_gen_call(tl_state *tl, struct tl_irep *irep, tl_value obj,
   irep->clen++;
 }
 
+static struct tl_irep *tl_gen_lambda(tl_state *tl, tl_value obj,
+                                     struct tl_env *env) {
+  tl_value body;
+  tl_value v;
+  struct tl_irep *irep;
+
+  irep = new_irep(tl);
+
+  body = tl_cdr(tl, tl_cdr(tl, obj));
+  for (v = body; !tl_nil_p(v); v = tl_cdr(tl, v)) {
+    tl_gen(tl, irep, tl_car(tl, v), env);
+  }
+  irep->code[irep->clen].inst = OP_RET;
+  irep->clen++;
+
+  return irep;
+}
+
 struct tl_proc *tl_codegen(tl_state *tl, tl_value obj, struct tl_env *env) {
   struct tl_proc *proc;
   struct tl_irep *irep;
-  struct tl_code *code;
 
   proc = (struct tl_proc *)tl_obj_alloc(tl, sizeof(struct tl_proc), TL_TT_PROC);
-
-  proc->u.irep = irep = (struct tl_irep *)malloc(sizeof(struct tl_irep));
-  irep->code = code = (struct tl_code *)malloc(sizeof(struct tl_code) * 1024);
-  irep->clen = 0;
-  irep->ccapa = 1024;
+  proc->u.irep = irep = new_irep(tl);
+  proc->cfunc_p = false;
 
   tl_gen(tl, irep, obj, env);
 

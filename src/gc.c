@@ -36,6 +36,14 @@ void *tl_alloc(tl_state *tl, size_t size) {
   return ptr;
 }
 
+void *tl_realloc(tl_state *tl, void *ptr, size_t size) {
+  ptr = realloc(ptr, size);
+  if (ptr == NULL) {
+    tl_raise(tl, "memory exhausted");
+  }
+  return ptr;
+}
+
 void tl_free(tl_state *tl, void *ptr) { free(ptr); }
 
 static void gc_protect(tl_state *tl, struct tl_object *obj) {
@@ -138,6 +146,14 @@ static void gc_mark_phase(tl_state *tl) {
   do {
     gc_mark(tl, env->assoc);
   } while ((env = env->parent) != NULL);
+
+  gc_mark(tl, tl->sDEFINE);
+  gc_mark(tl, tl->sLAMBDA);
+  gc_mark(tl, tl->sCONS);
+  gc_mark(tl, tl->sADD);
+  gc_mark(tl, tl->sSUB);
+  gc_mark(tl, tl->sMUL);
+  gc_mark(tl, tl->sDIV);
 }
 
 static bool is_marked(union header *p) { return p->s.mark == TL_GC_MARK; }

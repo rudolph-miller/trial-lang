@@ -33,6 +33,7 @@ tl_state *tl_open() {
   tl->arena_idx = 0;
 
   tl->sDEFINE = tl_intern_cstr(tl, "define");
+  tl->sLAMBDA = tl_intern_cstr(tl, "lambda");
   tl->sCONS = tl_intern_cstr(tl, "cons");
   tl->sADD = tl_intern_cstr(tl, "+");
   tl->sSUB = tl_intern_cstr(tl, "-");

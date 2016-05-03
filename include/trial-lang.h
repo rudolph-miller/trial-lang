@@ -19,6 +19,7 @@ typedef struct {
 
   tl_value sDEFINE;
   tl_value sCONS;
+  tl_value sLAMBDA;
   tl_value sADD;
   tl_value sSUB;
   tl_value sMUL;
@@ -40,6 +41,7 @@ tl_state *tl_open();
 void tl_close(tl_state *);
 
 void *tl_alloc(tl_state *, size_t);
+void *tl_realloc(tl_state *, void *, size_t);
 struct tl_object *tl_obj_alloc(tl_state *, size_t, enum tl_tt);
 void tl_free(tl_state *, void *);
 
